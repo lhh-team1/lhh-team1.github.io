@@ -6,11 +6,11 @@
 title: Team Name Goes Here
 
 # One sentence about your team. Shows up in Google search results.
-description: An FLL robotics team at Lansing Tech Studio.
+description: An FLL Challenge team at Lansing Tech Studio.
 
 # Change YOUR-USERNAME to your team's GitHub username in both lines.
-url: "https://YOUR-USERNAME.github.io"
-repo_url: "https://github.com/YOUR-USERNAME/YOUR-USERNAME.github.io"
+url: "https://lhh-team1.github.io"
+repo_url: "https://github.com/lhh-team1/lhh-team1.github.io"
 
 # ⚠️  Leave this empty. Your site lives at the top level of your
 # github.io address, so there's nothing to put here. Adding
