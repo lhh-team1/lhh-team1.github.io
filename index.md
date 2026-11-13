@@ -3,5 +3,9 @@ layout: home
 title: Our Team Blog
 ---
 
-Welcome! Write a sentence or two here about your team — what program you're in,
-what you're building this season, who you are.
+We're Riptide, a FIRST LEGO League Challenge team at Lansing Tech Studio. This
+season we designed Project B.E.A.C.O.N., a buoy that plays healthy reef sounds
+and releases coralline algae to bring coral larvae back to damaged reefs.
+
+See our [project design](/design/), meet our robot
+[Walter](/2026/10/17/walter-robot-schematic/), or [play our game](/Wrinkles.html).
