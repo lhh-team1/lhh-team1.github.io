@@ -1,0 +1,436 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>[ RIPTIDE ARCADE SYSTEMS ]</title>
+    <style>
+        body { margin:0; background:#010206; color:#fff; font-family:monospace; display:flex; flex-direction:column; align-items:center; justify-content:center; min-height:100vh; overflow:hidden; }
+        h1 { margin:5px; color:#4cc9f0; font-size:24px; text-shadow:0 0 10px rgba(76,201,240,0.6); }
+        h2 { margin:0 0 10px 0; color:#f72585; font-size:11px; letter-spacing:2px; text-shadow:0 0 8px rgba(247,37,133,0.5); }
+        #game-container { position:relative; border:4px solid #4cc9f0; box-shadow:0 0 20px rgba(76,201,240,0.3); }
+        canvas { display:block; background:#020916; image-rendering:pixelated; }
+        #ui-layer { position:absolute; top:10px; left:10px; right:10px; display:flex; justify-content:space-between; font-size:11px; pointer-events:none; background:rgba(1,2,6,0.85); padding:6px; border:1px solid #4cc9f0; }
+        #game-over-screen { position:absolute; top:0; left:0; width:100%; height:100%; background:rgba(1,2,6,0.96); display:flex; flex-direction:column; align-items:center; justify-content:center; opacity:0; pointer-events:none; font-size:12px; }
+        #game-over-screen.active { opacity:1; pointer-events:auto; }
+        input { background:#020916; color:#fff; border:2px solid #4cc9f0; padding:6px; font-family:monospace; text-align:center; font-size:14px; margin:5px; width:160px; box-shadow:0 0 8px rgba(76,201,240,0.2); }
+        button { background:#f72585; color:#fff; border:2px solid #fff; padding:8px 16px; cursor:pointer; font-family:monospace; font-weight:bold; margin:5px; box-shadow:0 0 10px rgba(247,37,133,0.4); }
+        #leaderboard-box { margin:10px 0; background:rgba(0,0,0,0.6); padding:8px; border:1px dashed #ffb703; width:220px; text-align:center; }
+        #instructions { margin-top:10px; font-size:11px; color:#a5b5c5; text-align:center; max-width:540px; border:1px solid #f72585; padding:6px; background:rgba(247,37,133,0.05); }
+    </style>
+</head>
+<body>
+
+    <h1>[ WRINKLES REEF RESCUE ]</h1>
+    <h2>TEAM RIPTIDE ENTERTAINMENT SYSTEMS * PROJECT BEACON</h2>
+
+    <div id="game-container">
+        <div id="ui-layer">
+            <div>GEMS: <span id="score">0</span> (HI: <span id="hi-ui">0</span>)</div>
+            <div>CCA BOOST: <span id="boost-ui" style="color:#06d6a0; font-weight:bold;">READY</span></div>
+            <div>STATUS: <span id="life">ALIVE</span></div>
+        </div>
+        <canvas id="gameCanvas" width="600" height="400"></canvas>
+        <div id="game-over-screen">
+            <h2 style="color:#f72585; font-size:22px; margin:2px;">BIOMASS COMPROMISED</h2>
+            <div id="new-record-msg" style="color:#ffb703; font-weight:bold; margin:3px; display:none; text-shadow:0 0 8px #ffb703;">NEW REEF RECORD!</div>
+            <p style="margin:4px; font-size:14px;">SCORE: <span id="final-score" style="color:#4cc9f0; font-weight:bold;">0</span></p>
+            
+            <div id="name-input-area">
+                <input type="text" id="player-name" maxlength="10" placeholder="ENTER INITIALS"><br>
+                <button onclick="submitScore()">SAVE SCORE</button>
+            </div>
+
+            <div id="leaderboard-box">
+                <div style="color:#ffb703; font-weight:bold; margin-bottom:4px;">LEADERBOARD</div>
+                <div id="high-scores-list" style="line-height:1.4;"></div>
+            </div>
+            <button onclick="resetGame()" style="background:#06d6a0; color:#000; box-shadow:0 0 10px rgba(6,214,160,0.4);">DEPLOY NEW RUN</button>
+        </div>
+    </div>
+
+    <div id="instructions">
+        <strong>CONTROLS:</strong> <strong>ARROW KEYS</strong> or <strong>WASD</strong> to swim. <strong>SPACEBAR</strong> for <strong>CCA BOOST</strong>!<br>
+        <span style="color:#4cc9f0;">Ride expanding sound waves to trigger Acoustic Boost momentum!</span><br>
+        <span style="color:#ffb703;">Watch out for Collin the Crab, he just might Eat You</span>
+    </div>
+
+    <script>
+        const canvas = document.getElementById("gameCanvas");
+        const ctx = canvas.getContext("2d");
+        const scoreEl = document.getElementById("score");
+        const hiUi = document.getElementById("hi-ui");
+        const lifeEl = document.getElementById("life");
+        const boostUi = document.getElementById("boost-ui");
+        const gameOverScreen = document.getElementById("game-over-screen");
+        const finalScoreEl = document.getElementById("final-score");
+        const highScoresList = document.getElementById("high-scores-list");
+        const nameInputArea = document.getElementById("name-input-area");
+        const newRecordMsg = document.getElementById("new-record-msg");
+
+        let audioCtx = null, nextNoteTime = 0, currentNoteIndex = 0;
+        const sopranoMelody = [293.66, 349.23, 440.00, 392.00, 349.23, 392.00, 440.00, 293.66, 329.63, 392.00, 493.88, 440.00, 392.00, 349.23, 329.63, 293.66, 349.23, 440.00, 523.25, 493.88, 440.00, 392.00, 349.23, 329.63, 293.66, 261.63, 293.66, 349.23, 329.63, 261.63, 220.00, 246.94];
+        const bassMelody =    [146.83, 146.83, 110.00, 110.00, 130.81, 130.81, 98.00,  98.00,  116.54, 116.54, 87.31,  87.31,  110.00, 110.00, 73.42,  73.42,  146.83, 146.83, 174.61, 174.61, 130.81, 130.81, 146.83, 110.00, 98.00,  98.00,  110.00, 110.00, 73.42,  73.42,  87.31,  110.00];
+
+        let gameActive = true, score = 0, frameCount = 0, waveRadius = 0;
+        const player = { x:300, y:180, w:22, h:22, baseSpeed:4.3, speed:4.3, dx:0, dy:0, lastDx:2, boostTimer:0, boostCooldown:0, waveBoostTimer:0 };
+        const enemy = { x:50, y:330, w:44, h:30, speed:2.3, targetX:400, targetY:330, patrolTimer:0, state:"PATROL" };
+        let food = { x:0, y:0, size:15 };
+        let bubbles = [], bgFish = [], particles = [], seaweedClusters = [];
+        let leaderBoard = [
+            {name: "RIPTIDE", score: 10},
+            {name: "WALTER", score: 5},
+            {name: "WRINKLES", score: -1}
+        ];
+        function initAudio() {
+            if (!audioCtx) {
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                nextNoteTime = audioCtx.currentTime;
+            }
+        }
+
+        function playSynthVoice(freq, type, duration, volume) {
+            if (!audioCtx) return;
+            try {
+                let osc = audioCtx.createOscillator();
+                let gain = audioCtx.createGain();
+                osc.type = type;
+                osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+                gain.gain.setValueAtTime(volume, audioCtx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + duration);
+                osc.connect(gain); gain.connect(audioCtx.destination);
+                osc.start(); osc.stop(audioCtx.currentTime + duration);
+            } catch(e) {}
+        }
+
+        function updateAudioLoop() {
+            if (!audioCtx || !gameActive) return;
+            if (audioCtx.currentTime > nextNoteTime) {
+                playSynthVoice(sopranoMelody[currentNoteIndex], "triangle", 0.18, 0.06);
+                if (currentNoteIndex % 2 === 0) {
+                    playSynthVoice(bassMelody[currentNoteIndex], "sine", 0.35, 0.09);
+                }
+                currentNoteIndex = (currentNoteIndex + 1) % sopranoMelody.length;
+                nextNoteTime = audioCtx.currentTime + 0.20;
+            }
+        }
+
+        function initBackground() {
+            bubbles = []; bgFish = []; particles = []; seaweedClusters = [];
+            for (let i = 0; i < 15; i++) {
+                bubbles.push({
+                    x: Math.random() * canvas.width,
+                    y: Math.random() * 260 + 130,
+                    size: Math.random() * 3 + i%2 + 1,
+                    speed: Math.random() * 0.5 + 0.2
+                });
+            }
+            for (let i = 0; i < 6; i++) {
+                bgFish.push({
+                    x: Math.random() * canvas.width,
+                    y: Math.random() * 160 + 150,
+                    w: Math.random() * 8 + 10,
+                    h: Math.random() * 3 + 4,
+                    speed: Math.random() * 0.7 + 0.3
+                });
+            }
+            for (let i = 0; i < 8; i++) {
+                seaweedClusters.push({
+                    x: i * 80 + Math.random() * 30,
+                    baseH: Math.random() * 30 + 40,
+                    waveOffset: Math.random() * Math.PI
+                });
+            }
+            hiUi.textContent = leaderBoard[0].score;
+        }
+
+        function spawnBurst(x, y, color) {
+            for (let i = 0; i < 16; i++) {
+                particles.push({
+                    x: x, y: y,
+                    dx: (Math.random() - 0.5) * 5,
+                    dy: (Math.random() - 0.5) * 5,
+                    size: Math.random() * 3 + 2,
+                    life: Math.floor(Math.random() * 15) + 15,
+                    color: color
+                });
+            }
+        }
+
+        function randomizeFood() {
+            food.x = Math.floor(Math.random() * (canvas.width - 80)) + 40;
+            food.y = Math.floor(Math.random() * 190) + 150;
+        }
+
+        const keys = {};
+        window.addEventListener("keydown", e => { 
+            initAudio();
+            if ((e.key === " " || e.key === "w" || e.key === "s") && gameActive) e.preventDefault();
+            keys[e.key.toLowerCase()] = true; 
+        });
+        window.addEventListener("keyup", e => { keys[e.key.toLowerCase()] = false; });
+
+        function updateInput() {
+            player.dx = 0; player.dy = 0;
+            if (keys["arrowup"] || keys["w"]) player.dy = -player.speed;
+            if (keys["arrowdown"] || keys["s"]) player.dy = player.speed;
+            if (keys["arrowleft"] || keys["a"]) { player.dx = -player.speed; player.lastDx = -2; }
+            if (keys["arrowright"] || keys["d"]) { player.dx = player.speed; player.lastDx = 2; }
+            
+            if (keys[" "] && player.boostCooldown <= 0 && player.boostTimer <= 0) {
+                player.speed = player.baseSpeed * 1.8;
+                player.boostTimer = 90; player.boostCooldown = 300;
+                spawnBurst(player.x + 11, player.y + 11, "#ff5d8f");
+                playSynthVoice(587.33, "sawtooth", 0.15, 0.12);
+            }
+        }
+
+        function updateCrabAI() {
+            let dx = (player.x + player.w/2) - (enemy.x + enemy.w/2);
+            let dy = (player.y + player.h/2) - (enemy.y + enemy.h/2);
+            let dist = Math.hypot(dx, dy);
+
+            if (player.y > 0) {
+                enemy.state = "CHASE";
+            } else {
+                if (enemy.state === "CHASE") {
+                    enemy.state = "PATROL";
+                    enemy.targetX = Math.random() * 500 + 50;
+                    enemy.targetY = Math.random() * 60 + 300;
+                }
+            }
+
+            if (enemy.state === "CHASE") {
+                let angle = Math.atan2(dy, dx);
+                enemy.x += Math.cos(angle) * (enemy.speed * 1.4);
+                enemy.y += Math.sin(angle) * (enemy.speed * 1.4);
+            } else {
+                if (Math.abs(enemy.x - enemy.targetX) < 15 && Math.abs(enemy.y - enemy.targetY) < 15 || enemy.patrolTimer <= 0) {
+                    enemy.targetX = Math.random() * 500 + 50;
+                    enemy.targetY = Math.random() * 60 + 300;
+                    enemy.patrolTimer = Math.floor(Math.random() * 150) + 120;
+                }
+                enemy.patrolTimer--;
+                
+                let angle = Math.atan2(enemy.targetY - enemy.y, enemy.targetX - enemy.x);
+                enemy.x += Math.cos(angle) * (enemy.speed * 0.7);
+                enemy.y += Math.sin(angle) * (enemy.speed * 0.7);
+            }
+        }
+        function checkCollisions() {
+            if (player.boostTimer > 0) {
+                player.boostTimer--;
+                if (player.boostTimer <= 0 && player.waveBoostTimer <= 0) {
+                    player.speed = player.baseSpeed;
+                }
+            }
+            if (player.boostCooldown > 0) player.boostCooldown--;
+
+            let pCenterX = player.x + player.w / 2;
+            let pCenterY = player.y + player.h / 2;
+            let distToBuoyOrigin = Math.hypot(pCenterX - 300, pCenterY - 112);
+            
+            if (Math.abs(distToBuoyOrigin - waveRadius) < 14) {
+                if (player.waveBoostTimer <= 0 && player.boostTimer <= 0) {
+                    player.speed = player.baseSpeed * 1.5;
+                    player.waveBoostTimer = 60;
+                    spawnBurst(player.x + 11, player.y + 11, "#4cc9f0");
+                    playSynthVoice(659.25, "sine", 0.05, 0.06);
+                }
+            }
+
+            if (player.waveBoostTimer > 0) {
+                player.waveBoostTimer--;
+                if (player.waveBoostTimer <= 0 && player.boostTimer <= 0) {
+                    player.speed = player.baseSpeed;
+                }
+            }
+
+            if (player.boostTimer > 0) {
+                boostUi.textContent = "ACTIVE!"; boostUi.style.color = "#ffafcc";
+            } else if (player.waveBoostTimer > 0) {
+                boostUi.textContent = "ACOUSTIC BOOST!"; boostUi.style.color = "#4cc9f0";
+            } else if (player.boostCooldown > 0) {
+                boostUi.textContent = "CHARGING"; boostUi.style.color = "#ffb703";
+            } else {
+                boostUi.textContent = "READY"; boostUi.style.color = "#06d6a0";
+            }
+
+            player.x += player.dx; player.y += player.dy;
+            if (player.x < 20) player.x = 20;
+            if (player.x > 560) player.x = 560;
+            if (player.y < 130) player.y = 130;
+            if (player.y > 360) player.y = 360;
+
+            if (player.x < food.x + food.size && player.x + player.w > food.x && player.y < food.y + food.size && player.y + player.h > food.y) {
+                score++; scoreEl.textContent = score;
+                spawnBurst(food.x + 6, food.y + 6, "#06d6a0");
+                playSynthVoice(880, "sine", 0.08, 0.12);
+                randomizeFood(); enemy.speed += 0.06;
+            }
+
+            updateCrabAI();
+
+            if (player.x < enemy.x + enemy.w && player.x + player.w > enemy.x && player.y < enemy.y + enemy.h && player.y + player.h > enemy.y) {
+                endGame();
+            }
+        }
+
+        function drawBackgroundElements() {
+            ctx.fillStyle = "#010815"; ctx.fillRect(0, 0, 600, 112);
+            ctx.fillStyle = "#020d20"; ctx.fillRect(0, 116, 600, 284);
+
+            bubbles.forEach(b => {
+                b.y -= b.speed; if (b.y < 120) b.y = canvas.height;
+                ctx.fillStyle = "rgba(76, 201, 240, 0.25)";
+                ctx.fillRect(b.x + 1, b.y, b.size - 2, b.size);
+                ctx.fillRect(b.x, b.y + 1, b.size, b.size - 2);
+            });
+
+            ctx.fillStyle = "#011630";
+            bgFish.forEach(f => {
+                f.x -= f.speed; if (f.x < -20) f.x = canvas.width + 20;
+                ctx.fillRect(f.x + 1, f.y, f.w - 2, f.h);
+                ctx.fillRect(f.x, f.y + 1, f.w, f.h - 2);
+                ctx.fillRect(f.x + f.w, f.y, 2, f.h);
+            });
+
+            ctx.fillStyle = "#1a4d3a";
+            seaweedClusters.forEach(sw => {
+                let sway = Math.sin(frameCount * 0.04 + sw.waveOffset) * 12;
+                ctx.beginPath();
+                ctx.moveTo(sw.x, 385);
+                ctx.quadraticCurveTo(sw.x + sway, 385 - sw.baseH/2, sw.x + sway/2, 385 - sw.baseH);
+                ctx.lineTo(sw.x + 6 + sway/2, 385 - sw.baseH);
+                ctx.quadraticCurveTo(sw.x + 6 + sway, 385 - sw.baseH/2, sw.x + 6, 385);
+                ctx.closePath(); ctx.fill();
+            });
+
+            ctx.fillStyle = "#e9c46a"; ctx.fillRect(0, 385, 600, 15);
+            ctx.fillStyle = "#e76f51"; ctx.fillRect(0, 385, 600, 2);
+        }
+        function drawBuoy() {
+            ctx.fillStyle = "#4cc9f0"; ctx.fillRect(0, 112, 600, 4);
+            ctx.fillStyle = "#ffffff"; 
+            ctx.fillRect(272, 84, 56, 28); ctx.fillRect(270, 86, 60, 24); 
+            ctx.fillRect(276, 64, 48, 20); ctx.fillRect(274, 66, 52, 16);
+            ctx.fillStyle = "#0056b3"; ctx.fillRect(292, 64, 16, 48); 
+            ctx.fillStyle = "#007bff"; ctx.fillRect(296, 64, 4, 48);
+            ctx.fillStyle = "#0f2d4a"; ctx.fillRect(278, 80, 10, 12); ctx.fillRect(312, 80, 10, 12);
+            ctx.fillStyle = "#1c232b"; ctx.fillRect(280, 68, 6, 6); ctx.fillRect(288, 68, 6, 6); ctx.fillRect(306, 68, 6, 6); ctx.fillRect(314, 68, 6, 6);
+            ctx.fillStyle = "#94a3b8"; ctx.fillRect(298, 44, 4, 20);
+            frameCount++;
+            if (Math.floor(frameCount / 15) % 2 === 0) {
+                ctx.fillStyle = "#ffb703"; ctx.fillRect(294, 34, 12, 10);
+            }
+        }
+
+        function drawPlayer() {
+            let px = player.x, py = player.y, dir = player.lastDx > 0;
+            let isMoving = player.dx !== 0 || player.dy !== 0;
+            let swimPulse = isMoving ? Math.sin(frameCount * 0.25) * 2 : 0;
+            let breatheMod = Math.sin(frameCount * 0.08) * 3;
+            
+            ctx.fillStyle = (player.waveBoostTimer > 0) ? "rgba(76, 201, 240, 0.6)" : "rgba(251, 133, 0, 0.4)";
+            ctx.fillRect(px + 4 - swimPulse/2, py + 2, 14 + swimPulse, 18);
+            ctx.fillRect(px + 2, py + 4 - swimPulse/2, 18, 14 + swimPulse);
+            
+            ctx.fillStyle = (player.waveBoostTimer > 0) ? "#4cc9f0" : "#fb8500"; 
+            ctx.fillRect(px + 6 - swimPulse/2, py + 4, 10 + swimPulse, 14);
+            ctx.fillRect(px + 4, py + 6 - swimPulse/2, 14, 10 + swimPulse);
+            
+            ctx.fillStyle = `rgba(255, 183, 3, ${0.7 + (breatheMod/10)})`;
+            ctx.fillRect(px + 8, py + 7, 6, 8); ctx.fillRect(px + 7, py + 8, 8, 6);
+            
+            let ex = dir ? px + 13 : px + 5;
+            ctx.fillStyle = "#fff"; ctx.fillRect(ex, py + 8, 2, 2);
+            ctx.fillStyle = "#000"; ctx.fillRect(ex + (dir ? 2 : -2), py + 8, 2, 2);
+
+            ctx.fillStyle = "#ffafcc";
+            let sx = dir ? px + 11 : px + 5;
+            ctx.fillRect(sx, py + 14, 4, 2); 
+            ctx.fillStyle = "#ff5d8f"; ctx.fillRect(sx + (dir ? 4 : -2), py + 12, 2, 2);
+
+            let ciliaStroke = isMoving ? Math.floor(frameCount / 6) % 2 * 2 : 0;
+            ctx.fillStyle = (player.waveBoostTimer > 0) ? "#4cc9f0" : "#fb8500";
+            ctx.fillRect(px, py + 6 + ciliaStroke, 2, 4); ctx.fillRect(px, py + 12 - ciliaStroke, 2, 4);
+            ctx.fillRect(px + 20, py + 6 - ciliaStroke, 2, 4); ctx.fillRect(px + 20, py + 12 + ciliaStroke, 2, 4);
+            ctx.fillRect(px + 6 + ciliaStroke, py, 4, 2); ctx.fillRect(px + 12 - ciliaStroke, py, 4, 2);
+            ctx.fillRect(px + 6 - ciliaStroke, py + 20, 4, 2); ctx.fillRect(px + 12 + ciliaStroke, py + 20, 4, 2);
+        }
+
+        function drawCrab() {
+            let ex = enemy.x, ey = enemy.y, ew = enemy.w, eh = enemy.h;
+            ctx.fillStyle = (enemy.state === "PATROL") ? "#ff2a55" : "#9d0208";
+            ctx.fillRect(ex + 10, ey + 6, 24, 18); ctx.fillRect(ex + 8, ey + 8, 28, 14);
+            ctx.fillStyle = "#dc2f02"; ctx.fillRect(ex + 12, ey + 8, 20, 6); ctx.fillRect(ex + 14, ey + 14, 16, 4);
+            
+            let clawMod = Math.floor(frameCount / 12) % 2 === 0 ? 2 : -2;
+            ctx.fillStyle = (enemy.state === "PATROL") ? "#ff2a55" : "#9d0208";
+            ctx.fillRect(ex, ey + 4, 8, 12); ctx.fillRect(ex + 36, ey + 4, 8, 12);
+            ctx.fillStyle = "#f48c06"; 
+            ctx.fillRect(ex, ey + 2 + clawMod, 4, 4); ctx.fillRect(ex + 40, ey + 2 + clawMod, 4, 4);
+            
+            ctx.fillStyle = "#fff"; ctx.fillRect(ex + 12, ey, 4, 6); ctx.fillRect(ex + 26, ey, 4, 6);
+            ctx.fillStyle = "#000"; ctx.fillRect(ex + 13, ey + 2, 2, 2); ctx.fillRect(ex + 27, ey + 2, 2, 2);
+            
+            let legYOffset = Math.sin(frameCount * 0.15) * 3;
+            ctx.fillStyle = "#6a040f"; 
+            ctx.fillRect(ex + 8, ey + 24 + legYOffset, 4, 6); ctx.fillRect(ex + 16, ey + 24 - legYOffset, 4, 6); 
+            ctx.fillRect(ex + 22, ey + 24 + legYOffset, 4, 6); ctx.fillRect(ex + 30, ey + 24 - legYOffset, 4, 6);
+        }
+
+        function drawParticles() {
+            for (let i = particles.length - 1; i >= 0; i--) {
+                let p = particles[i]; p.x += p.dx; p.y += p.dy; p.life--;
+                if (p.life <= 0) { particles.splice(i, 1); continue; }
+                ctx.fillStyle = p.color; ctx.fillRect(p.x, p.y, p.size, p.size);
+            }
+        }
+
+        function updateLeaderboardUI() {
+            leaderBoard.sort((a, b) => b.score - a.score);
+            leaderBoard = leaderBoard.slice(0, 5);
+            hiUi.textContent = leaderBoard[0].score;
+            highScoresList.innerHTML = leaderBoard.map((entry, idx) => `${idx + 1}. ${entry.name} - ${entry.score}`).join('<br>');
+        }
+
+        function submitScore() {
+            const nameIn = document.getElementById("player-name").value.trim().toUpperCase();
+            if (!nameIn) return;
+            leaderBoard.push({ name: nameIn, score: score });
+            nameInputArea.style.display = "none"; newRecordMsg.style.display = "none";
+            updateLeaderboardUI();
+        }
+
+        function draw() {
+            drawBackgroundElements();
+            waveRadius += 2.4; if (waveRadius > 500) waveRadius = 0;
+            let alpha = 1 - (waveRadius / 500); ctx.strokeStyle = "rgba(76, 201, 240, " + alpha + ")";
+            ctx.lineWidth = 4; ctx.beginPath(); ctx.arc(300, 112, waveRadius, 0, Math.PI); ctx.stroke();
+            drawBuoy();
+            ctx.fillStyle = "#06d6a0"; ctx.fillRect(food.x + 2, food.y, food.size - 4, food.size); ctx.fillRect(food.x, food.y + 2, food.size, food.size - 4);
+            ctx.fillStyle = "#fff"; ctx.fillRect(food.x + 3, food.y + 3, 6, 6);
+            drawCrab(); drawPlayer(); drawParticles();
+        }
+
+        function gameLoop() { if (!gameActive) return; updateAudioLoop(); updateInput(); checkCollisions(); draw(); requestAnimationFrame(gameLoop); }
+        
+        function endGame() {
+            gameActive = false; lifeEl.textContent = "COMPROMISED"; finalScoreEl.textContent = score;
+            playSynthVoice(146.83, "sawtooth", 0.6, 0.15);
+            nameInputArea.style.display = "block"; document.getElementById("player-name").value = "";
+            newRecordMsg.style.display = (score > leaderBoard[0].score) ? "block" : "none";
+            updateLeaderboardUI(); gameOverScreen.classList.add("active");
+        }
+
+        function resetGame() {
+            player.x = 300; player.y = 180; enemy.x = 50; enemy.y = 330; enemy.speed = 2.3; enemy.state = "PATROL"; player.lastDx = 2;
+            player.boostTimer = 0; player.boostCooldown = 0; player.waveBoostTimer = 0; player.speed = player.baseSpeed; score = 0; scoreEl.textContent = "0";
+            lifeEl.textContent = "HEALTHY"; gameOverScreen.classList.remove("active"); gameActive = true;
+            initBackground(); updateLeaderboardUI(); randomizeFood(); gameLoop();
+        }
+
+        initBackground(); updateLeaderboardUI(); randomizeFood(); gameLoop();
+    </script>
+</body>
+</html>

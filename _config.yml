@@ -25,6 +25,8 @@ nav:
     url: /about/
   - title: Project Design
     url: /design/
+  - title: Game
+    url: /Wrinkles.html
 
 # ═══════════════════════════════════════════════════════════════
 #  BELOW HERE IS PLUMBING — you shouldn't need to touch it.
