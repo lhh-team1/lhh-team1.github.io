@@ -58,4 +58,5 @@ crustaceans.
 
 ## Learn more
 
-Read our [business proposal](/2026/10/20/business-proposal-project-beacon/) for the details.
+Read our [business proposal](/2026/10/20/business-proposal-project-beacon/) and our
+[research repository](/2026/10/28/research-repository/) for the details.
