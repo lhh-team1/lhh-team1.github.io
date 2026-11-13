@@ -3,12 +3,12 @@ title: "Business Proposal: Project B.E.A.C.O.N."
 author: Dexter Krzyminski
 ---
 
-Business Proposal: Project B.E.A.C.O.N.
-
 Submitted by: Team Riptide
+
 Base Investment: $5,000 USD (subject to applicable taxes)
 
-Executive Summary:
+## Executive Summary
+
 Team Riptide is proud to present Project B.E.A.C.O.N., an innovative coral reef
 rehabilitation device designed to accelerate marine ecosystem recovery. B.E.A.C.O.N.
 actively restores reefs by emitting acoustic amplifications of healthy coral feeding
@@ -17,34 +17,41 @@ approach stimulates the reef environment, successfully attracting coral larvae, 
 and other essential crustaceans necessary for maintaining a biodiverse, healthy marine
 ecosystem.
 
-Technical & Regulatory Specifications:
+## Technical & Regulatory Specifications
+
 Constructed from high-durability fiberglass plastic, the device is modeled after an
 official marine research buoy. It operates fully remotely with a scheduled maintenance
 cycle of once per year and is 100% compliant with USS standards.
 
 To ensure safety and legal compliance, B.E.A.C.O.N. strictly adheres to all LALA
 rules and regulations:
+
   1. The vessel is marked with a mandatory, continuous single yellow or blue line
      across the entire hull.
   2. It is equipped with a specialized yellow flashing pattern light for high visibility
      during pre-dawn and post-dusk operations.
 
-Electronics & FCC Compliance:
+## Electronics & FCC Compliance
+
 The buoy houses an advanced onboard computer system capable of seamless data
 transmission and reception. In strict accordance with FCC regulations, this device
 operates under the following mandates:
+
   1. This device may not cause harmful interference.
   2. This device must accept any interference received, including interference that
      may cause undesired operation.
 
-Environmental Impact:
+## Environmental Impact
+
 Project B.E.A.C.O.N. represents a major technological advancement for marine
 conservation. By establishing healthy coral populations and promoting CCA growth, the
 device is projected to significantly improve local reef health within just two years of
 deployment, creating a more stable, thriving environment for future generations.
 
-Proprietary Rights & Terms of Service:
+## Proprietary Rights & Terms of Service
+
 By purchasing or deploying this device, the owner agrees to the following strict operational policies:
+
   1. Unauthorized Maintenance: No unauthorized allocations, modifications, or
      repairs are to be performed by the owner. Any violation of this policy will result in
      the immediate repossession of the device by Team Riptide.
