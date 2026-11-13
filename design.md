@@ -9,8 +9,12 @@ schematic: /assets/images/schematic.png
 schematic_caption:
 ---
 
-How our robot works, in one picture and one video. Change this sentence to say
-what your design does and why you built it that way.
+**[Play our game: Wrinkles Reef Rescue](/Wrinkles.html)** (you need a keyboard)
+
+Project B.E.A.C.O.N. is a coral reef rehabilitation device. It restores reefs by
+emitting acoustic amplifications of healthy coral feeding sounds while releasing
+Crustose Coralline Algae (CCA), which attracts coral larvae, shrimp, and other
+crustaceans.
 
 <style>
   .design-figure { margin: 0 0 1rem; text-align: center; }
@@ -52,7 +56,6 @@ what your design does and why you built it that way.
 <p><a href="{{ page.video }}">Watch on Screencast &rarr;</a></p>
 {% endif %}
 
-## How it works
+## Learn more
 
-Walk people through your design. A few ideas: what each part of the robot does,
-what problem it solves, what you tried first, and what you'd change next time.
+Read our [business proposal](/2026/10/20/business-proposal-project-beacon/) for the details.
